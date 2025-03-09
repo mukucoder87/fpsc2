@@ -286,6 +286,7 @@ async function finalSubmit() {
         const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/main.yml/dispatches`, {
             method: "POST",
             headers: {
+                "Authorization": `token SCORE_CARD_MASTER`,  // Using the GitHub Secret
                 "Accept": "application/vnd.github.v3+json",
                 "Content-Type": "application/json"
             },
