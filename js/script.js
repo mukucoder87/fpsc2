@@ -283,10 +283,10 @@ async function finalSubmit() {
     });
 
     try {
-        const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/main.yml/dispatches`, {
+        const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/update-json.yml/dispatches`, {  
             method: "POST",
             headers: {
-                "Authorization": `token SCORE_CARD_MASTER`,  // Using the GitHub Secret
+                "Authorization": `token YOUR_PERSONAL_ACCESS_TOKEN`,  // Use GitHub Secret if possible
                 "Accept": "application/vnd.github.v3+json",
                 "Content-Type": "application/json"
             },
@@ -299,7 +299,7 @@ async function finalSubmit() {
         });
 
         if (response.ok) {
-            alert("Form submitted! GitHub Actions will process the update.");
+            alert("Form submitted successfully! GitHub Actions will process the update.");
         } else {
             const errorData = await response.json();
             console.error("GitHub API Error:", errorData);
@@ -307,7 +307,7 @@ async function finalSubmit() {
         }
     } catch (error) {
         console.error("Error:", error);
-        alert("Something went wrong!");
+        alert("Something went wrong while submitting the form!");
     }
 }
 
