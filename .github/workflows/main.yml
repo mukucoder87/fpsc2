@@ -15,13 +15,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Decode Form Data
-        run: |
-          echo '${{ github.event.inputs.submission }}' > form_submission.json
-
       - name: Fetch Existing Data
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_ACCESS }}
+          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # FIXED: Using SCORE_CARD_MASTER
         run: |
           curl -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
@@ -30,13 +26,16 @@ jobs:
 
       - name: Append New Data
         run: |
+          echo '${{ github.event.inputs.submission }}' > form_submission.json
           jq '. + [input]' data/submissions.json form_submission.json > updated_submissions.json || echo '[input]' form_submission.json > updated_submissions.json
           mv updated_submissions.json data/submissions.json
 
       - name: Commit and Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # FIXED: Using SCORE_CARD_MASTER
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/submissions.json
           git commit -m "New form submission via GitHub Actions"
-          git push
+          git push https://x-access-token:$GITHUB_TOKEN@github.com/mukucoder87/fpsc2.git HEAD:main
