@@ -283,7 +283,7 @@ async function finalSubmit() {
     });
 
     try {
-        const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/update-json.yml/dispatches`, {  
+        const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/.github/workflows/main.yml/dispatches`, {  
             method: "POST",
             headers: {
                 "Authorization": `token YOUR_PERSONAL_ACCESS_TOKEN`,  // Use GitHub Secret if possible
