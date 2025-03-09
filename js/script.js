@@ -278,7 +278,6 @@ async function finalSubmit() {
         responses: {}
     };
 
-    // Collect all form responses
     document.querySelectorAll("select").forEach(select => {
         formData.responses[select.name] = select.value;
     });
@@ -287,14 +286,13 @@ async function finalSubmit() {
         const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/main.yml/dispatches`, {
             method: "POST",
             headers: {
-                "Authorization": `token YOUR_PERSONAL_ACCESS_TOKEN`,  // Replace with GitHub Secret if using GitHub Actions
                 "Accept": "application/vnd.github.v3+json",
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                ref: "main",  // The branch where the workflow runs
+                ref: "main",
                 inputs: {
-                    submission: JSON.stringify(formData)  // Pass form data to workflow
+                    submission: JSON.stringify(formData)
                 }
             })
         });
@@ -311,7 +309,6 @@ async function finalSubmit() {
         alert("Something went wrong!");
     }
 }
-
 
 /*************************************************************
  * 6) Generate a basic report + show charts
