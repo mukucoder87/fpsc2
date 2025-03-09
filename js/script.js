@@ -270,59 +270,48 @@ function collectFormData() {
  * 5) Final submission: store data in GitHub (JSON file)
  *************************************************************/
 async function finalSubmit() {
-  // 5a) Collect form data
-  const formData = collectFormData();
+    const formData = {
+        districtName: document.getElementById("districtName").value,
+        ceoDDMA: document.getElementById("ceoDDMA").value,
+        departmentName: document.getElementById("departmentName").value,
+        officerName: document.getElementById("officerName").value,
+        responses: {}
+    };
 
-  // 5b) Attempt to fetch existing submissions.json
-  let shaValue = null;
-  let existingData = [];
-  try {
-    let getFile = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
-      headers: { Authorization: `token ${GITHUB_API_TOKEN}` }
+    // Collect all form responses
+    document.querySelectorAll("select").forEach(select => {
+        formData.responses[select.name] = select.value;
     });
 
-    if (getFile.ok) {
-      const fileData = await getFile.json();
-      shaValue = fileData.sha; // needed to update existing file
-      existingData = JSON.parse(atob(fileData.content));
+    try {
+        const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/main.yml/dispatches`, {
+            method: "POST",
+            headers: {
+                "Authorization": `token YOUR_PERSONAL_ACCESS_TOKEN`,  // Replace with GitHub Secret if using GitHub Actions
+                "Accept": "application/vnd.github.v3+json",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                ref: "main",  // The branch where the workflow runs
+                inputs: {
+                    submission: JSON.stringify(formData)  // Pass form data to workflow
+                }
+            })
+        });
+
+        if (response.ok) {
+            alert("Form submitted! GitHub Actions will process the update.");
+        } else {
+            const errorData = await response.json();
+            console.error("GitHub API Error:", errorData);
+            alert("Error triggering GitHub Actions.");
+        }
+    } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong!");
     }
-  } catch (err) {
-    console.log("No existing file or error fetching file:", err);
-  }
-
-  // 5c) Append new submission
-  existingData.push(formData);
-
-  // 5d) Prepare content for GitHub
-  const newContent = btoa(JSON.stringify(existingData, null, 2));
-
-  // 5e) Update or create submissions.json
-  try {
-    let updateResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
-      method: "PUT",
-      headers: {
-        Authorization: `token ${GITHUB_API_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "New form submission",
-        content: newContent,
-        sha: shaValue || undefined
-      })
-    });
-
-    if (updateResponse.ok) {
-      alert("Data successfully saved to GitHub!");
-      // Optionally generate a report
-      generateReport(formData, existingData);
-    } else {
-      throw new Error("Failed to update GitHub file.");
-    }
-  } catch (error) {
-    console.error("Error:", error);
-    alert("Error saving data to GitHub!");
-  }
 }
+
 
 /*************************************************************
  * 6) Generate a basic report + show charts
