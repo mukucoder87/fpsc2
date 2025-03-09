@@ -1,7 +1,7 @@
 name: Update JSON from Form Submission
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # ✅ Allows the form submission to trigger the workflow
     inputs:
       submission:
         description: "Form Submission Data"
@@ -15,16 +15,16 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Fetch Existing Data
+      - name: Fetch Existing JSON Data
         env:
-          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # FIXED: Using SCORE_CARD_MASTER
+          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # ✅ Correct GitHub Secret
         run: |
           curl -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
                https://api.github.com/repos/mukucoder87/fpsc2/contents/data/submissions.json \
                | jq -r '.content' | base64 --decode > data/submissions.json || echo "[]" > data/submissions.json
 
-      - name: Append New Data
+      - name: Append New Data to JSON
         run: |
           echo '${{ github.event.inputs.submission }}' > form_submission.json
           jq '. + [input]' data/submissions.json form_submission.json > updated_submissions.json || echo '[input]' form_submission.json > updated_submissions.json
@@ -32,7 +32,7 @@ jobs:
 
       - name: Commit and Push Changes
         env:
-          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # FIXED: Using SCORE_CARD_MASTER
+          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # ✅ Correct GitHub Secret
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
