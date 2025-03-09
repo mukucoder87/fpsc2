@@ -178,5 +178,276 @@ function generateForm() {
 
     const titleEl = document.createElement("h3");
     titleEl.textContent = standard.title;
-    sect
+    sectionDiv.appendChild(titleEl);
 
+    standard.questions.forEach((questionText, qIndex) => {
+      const qDiv = document.createElement("div");
+      qDiv.className = "question";
+
+      // Question label
+      const p = document.createElement("p");
+      p.textContent = `${sIndex + 1}.${qIndex + 1} - ${questionText}`;
+      qDiv.appendChild(p);
+
+      // Dropdown
+      const select = document.createElement("select");
+      select.name = `${sIndex + 1}.${qIndex + 1}`;
+      // Add answer options
+      for (let val of ["2","1.5","1","0.5","0"]) {
+        let opt = document.createElement("option");
+        opt.value = val;
+        opt.textContent = categoryLabels[val];
+        select.appendChild(opt);
+      }
+
+      qDiv.appendChild(select);
+      sectionDiv.appendChild(qDiv);
+    });
+
+    form.appendChild(sectionDiv);
+  });
+
+  // Add final submission button at the bottom
+  const submitBtn = document.createElement("button");
+  submitBtn.type = "button";
+  submitBtn.textContent = "Final Submission";
+  submitBtn.onclick = finalSubmit;
+  form.appendChild(submitBtn);
+}
+
+// 2) Clear form + localStorage
+function clearForm() {
+  document.getElementById("assessmentForm").reset();
+  localStorage.removeItem("assessmentData");
+  alert("Form cleared and local storage removed.");
+}
+
+// 3) Save form to localStorage (optional)
+function saveForm() {
+  const formData = collectFormData();
+  localStorage.setItem("assessmentData", JSON.stringify(formData));
+  alert("Form data saved to local storage.");
+}
+
+// 4) Load form from localStorage (optional)
+function loadForm() {
+  const data = JSON.parse(localStorage.getItem("assessmentData") || "{}");
+  if (!data.responses) {
+    alert("No saved data found.");
+    return;
+  }
+  // Fill in the text fields
+  document.getElementById("districtName").value = data.districtName || "";
+  document.getElementById("ceoDDMA").value = data.ceoDDMA || "";
+  document.getElementById("departmentName").value = data.departmentName || "";
+  document.getElementById("officerName").value = data.officerName || "";
+
+  // Fill in the dropdowns
+  Object.keys(data.responses).forEach(key => {
+    let select = document.getElementsByName(key)[0];
+    if (select) select.value = data.responses[key];
+  });
+  alert("Form data loaded from local storage.");
+}
+
+// Helper to gather all form data into an object
+function collectFormData() {
+  let responses = {};
+  document.querySelectorAll("#assessmentForm select").forEach(select => {
+    responses[select.name] = select.value;
+  });
+
+  return {
+    districtName: document.getElementById("districtName").value,
+    ceoDDMA: document.getElementById("ceoDDMA").value,
+    departmentName: document.getElementById("departmentName").value,
+    officerName: document.getElementById("officerName").value,
+    responses: responses
+  };
+}
+
+/*************************************************************
+ * 5) Final submission: store data in GitHub (JSON file)
+ *************************************************************/
+async function finalSubmit() {
+  // 5a) Collect form data
+  const formData = collectFormData();
+
+  // 5b) Attempt to fetch existing submissions.json
+  let shaValue = null;
+  let existingData = [];
+  try {
+    let getFile = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+      headers: { Authorization: `token ${GITHUB_API_TOKEN}` }
+    });
+
+    if (getFile.ok) {
+      const fileData = await getFile.json();
+      shaValue = fileData.sha; // needed to update existing file
+      existingData = JSON.parse(atob(fileData.content));
+    }
+  } catch (err) {
+    console.log("No existing file or error fetching file:", err);
+  }
+
+  // 5c) Append new submission
+  existingData.push(formData);
+
+  // 5d) Prepare content for GitHub
+  const newContent = btoa(JSON.stringify(existingData, null, 2));
+
+  // 5e) Update or create submissions.json
+  try {
+    let updateResponse = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `token ${GITHUB_API_TOKEN}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: "New form submission",
+        content: newContent,
+        sha: shaValue || undefined
+      })
+    });
+
+    if (updateResponse.ok) {
+      alert("Data successfully saved to GitHub!");
+      // Optionally generate a report
+      generateReport(formData, existingData);
+    } else {
+      throw new Error("Failed to update GitHub file.");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+    alert("Error saving data to GitHub!");
+  }
+}
+
+/*************************************************************
+ * 6) Generate a basic report + show charts
+ *************************************************************/
+function generateReport(latestSubmission, allSubmissions) {
+  // Hide form, show report
+  document.getElementById("header").style.display = "none";
+  document.getElementById("form-container").style.display = "none";
+  document.getElementById("reportSection").style.display = "block";
+
+  // Simple table for the latest submission
+  let html = `
+    <table>
+      <tr><th>District Name</th><td>${latestSubmission.districtName || "N/A"}</td></tr>
+      <tr><th>CEO DDMA</th><td>${latestSubmission.ceoDDMA || "N/A"}</td></tr>
+      <tr><th>Department</th><td>${latestSubmission.departmentName || "N/A"}</td></tr>
+      <tr><th>Officer</th><td>${latestSubmission.officerName || "N/A"}</td></tr>
+    </table>
+  `;
+  document.getElementById("reportTable").innerHTML = html;
+
+  // Compute scores for the latest submission
+  let standardScores = [];
+  let index = 0;
+  standards.forEach((std, sIndex) => {
+    let sum = 0;
+    for (let q = 1; q <= std.questions.length; q++) {
+      const key = `${sIndex + 1}.${q}`;
+      sum += parseFloat(latestSubmission.responses[key] || "0");
+      index++;
+    }
+    standardScores.push(sum);
+  });
+
+  // Create a bar chart for standard scores
+  const barCtx = document.getElementById("barChart").getContext("2d");
+  if (window.myBarChart) window.myBarChart.destroy();
+  window.myBarChart = new Chart(barCtx, {
+    type: "bar",
+    data: {
+      labels: standards.map((s, i) => "Std " + (i + 1)),
+      datasets: [{
+        label: "Score",
+        data: standardScores,
+        backgroundColor: "rgba(0, 122, 204, 0.7)"
+      }]
+    },
+    options: {
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: "Score" },
+          // Max possible per standard is 7 questions × 2 = 14
+          max: 14
+        }
+      }
+    }
+  });
+
+  // Overall distribution (pie chart)
+  let distributionCounts = { "2":0, "1.5":0, "1":0, "0.5":0, "0":0 };
+  Object.values(latestSubmission.responses).forEach(val => {
+    distributionCounts[val] = (distributionCounts[val] || 0) + 1;
+  });
+  const pieCtx = document.getElementById("pieChart").getContext("2d");
+  if (window.myPieChart) window.myPieChart.destroy();
+  window.myPieChart = new Chart(pieCtx, {
+    type: "pie",
+    data: {
+      labels: Object.keys(distributionCounts).map(k => categoryLabels[k]),
+      datasets: [{
+        data: Object.values(distributionCounts),
+        backgroundColor: ["#2ecc71","#f1c40f","#3498db","#9b59b6","#e74c3c"]
+      }]
+    },
+    options: {
+      plugins: {
+        legend: { position: "bottom" },
+        title: { display: true, text: "Overall Answer Distribution" }
+      }
+    }
+  });
+}
+
+/*************************************************************
+ * 7) PDF Download
+ *************************************************************/
+function downloadPDF() {
+  html2canvas(document.getElementById("reportSection"), {scale: 2}).then(canvas => {
+    const imgData = canvas.toDataURL("image/png");
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF("p", "pt", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth - 40; 
+    const imgHeight = canvas.height * imgWidth / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 20;
+
+    pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      pdf.addPage();
+      position = heightLeft - imgHeight + 20;
+      pdf.addImage(imgData, "PNG", 20, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+    pdf.save("assessment_report.pdf");
+  });
+}
+
+/*************************************************************
+ * 8) Go back to edit form
+ *************************************************************/
+function editForm() {
+  document.getElementById("header").style.display = "block";
+  document.getElementById("form-container").style.display = "block";
+  document.getElementById("reportSection").style.display = "none";
+  window.scrollTo(0, 0);
+}
+
+/*************************************************************
+ * On Page Load
+ *************************************************************/
+document.addEventListener("DOMContentLoaded", () => {
+  generateForm();
+});
