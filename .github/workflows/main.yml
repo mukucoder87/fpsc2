@@ -1,11 +1,11 @@
-name: Update GitHub Data
+name: Update JSON from Form Submission
 
 on:
-  push:
-    branches:
-      - main  # Runs the workflow whenever changes are pushed to main
-
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
+    inputs:
+      submission:
+        description: "Form Submission Data"
+        required: true
 
 jobs:
   update_json:
@@ -15,23 +15,28 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Update JSON File
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_ACCESS }}  # Using the GitHub Secret
+      - name: Decode Form Data
         run: |
-          echo "Fetching existing data..."
+          echo '${{ github.event.inputs.submission }}' > form_submission.json
+
+      - name: Fetch Existing Data
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_ACCESS }}
+        run: |
           curl -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
-               https://api.github.com/repos/mukucoder87/fpsc2/contents/data/submissions.json
+               https://api.github.com/repos/mukucoder87/fpsc2/contents/data/submissions.json \
+               | jq -r '.content' | base64 --decode > data/submissions.json || echo "[]" > data/submissions.json
 
-          echo "Updating JSON file..."
-          echo '{"message": "Updated via GitHub Actions"}' > data/submissions.json
+      - name: Append New Data
+        run: |
+          jq '. + [input]' data/submissions.json form_submission.json > updated_submissions.json || echo '[input]' form_submission.json > updated_submissions.json
+          mv updated_submissions.json data/submissions.json
 
       - name: Commit and Push Changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add data/submissions.json
-          git commit -m "Automated JSON update via GitHub Actions"
+          git commit -m "New form submission via GitHub Actions"
           git push
-
