@@ -1,1 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flood Preparedness Score Card – DDMA</title>
+  <!-- Link to your CSS file -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <h1>District Flood Preparedness Score Card – DDMA</h1>
+
+  <!-- Header Section: District Info -->
+  <div id="header">
+    <h3>District & Contact Information</h3>
+    <label for="districtName">District Name:</label><br>
+    <input type="text" id="districtName" placeholder="Enter district name"><br><br>
+
+    <label for="ceoDDMA">CEO DDMA:</label><br>
+    <input type="text" id="ceoDDMA" placeholder="Enter the name of CEO DDMA"><br><br>
+
+    <label for="departmentName">Department:</label><br>
+    <input type="text" id="departmentName" placeholder="Enter department name"><br><br>
+
+    <label for="officerName">Officer Designated:</label><br>
+    <input type="text" id="officerName" placeholder="Enter officer name"><br><br>
+
+    <div style="text-align: center; margin-top:10px;">
+      <button type="button" onclick="clearForm()">Clear</button>
+      <button type="button" onclick="saveForm()">Save</button>
+      <button type="button" onclick="loadForm()">Load</button>
+    </div>
+  </div>
+
+  <!-- Dynamic Form Container -->
+  <div id="form-container">
+    <form id="assessmentForm">
+      <!-- The script.js will generate 12 sections × 7 questions each (84 total) -->
+    </form>
+  </div>
+
+  <!-- Report Section -->
+  <div id="reportSection" style="display: none;">
+    <h2>Assessment Report</h2>
+    <div id="reportTable"></div>
+    <h3>Standard Scores Chart</h3>
+    <canvas id="barChart"></canvas>
+    <h3>Overall Distribution</h3>
+    <canvas id="pieChart"></canvas>
+
+    <div style="text-align:center; margin-top: 20px;">
+      <button type="button" onclick="downloadPDF()">Download PDF</button>
+      <button type="button" onclick="editForm()">Back to Edit</button>
+    </div>
+  </div>
+
+  <!-- Include Chart.js for charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Include jsPDF for PDF download -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- Include html2canvas for capturing HTML as an image -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Main JS -->
+  <script src="js/script.js"></script>
+
+  <footer style="margin-top: 40px;">
+    Designed by 
+    <a href="https://www.linkedin.com/in/mukunda-upadhyay-692351279/" target="_blank">
+      Mukunda Upadhyay, Disaster Management Professional, India
+    </a>
+  </footer>
+</body>
+</html>
 
