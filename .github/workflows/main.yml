@@ -17,7 +17,7 @@ jobs:
 
       - name: Fetch Existing JSON Data
         env:
-          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # ✅ Correct GitHub Secret
+          GITHUB_TOKEN: ${{ secrets.SCORECARD }}  # ✅ Correct GitHub Secret
         run: |
           curl -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
@@ -32,7 +32,7 @@ jobs:
 
       - name: Commit and Push Changes
         env:
-          GITHUB_TOKEN: ${{ secrets.SCORE_CARD_MASTER }}  # ✅ Uses the correct secret for authentication
+          GITHUB_TOKEN: ${{ secrets.SCORECARD }}  # ✅ Uses the correct secret for authentication
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
