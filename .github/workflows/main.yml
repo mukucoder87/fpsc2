@@ -1,7 +1,7 @@
 name: Update JSON from Form Submission
 
 on:
-  workflow_dispatch:  # ✅ Allows manual & script-triggered execution
+  workflow_dispatch:
     inputs:
       submission:
         description: "Form Submission Data"
@@ -17,7 +17,7 @@ jobs:
 
       - name: Fetch Existing JSON Data
         env:
-          GITHUB_TOKEN: ${{ secrets.SCORECARD }}  # ✅ Correct GitHub Secret
+          GITHUB_TOKEN: ${{ secrets.SCORECARD }}
         run: |
           curl -H "Authorization: token $GITHUB_TOKEN" \
                -H "Accept: application/vnd.github.v3+json" \
@@ -27,15 +27,16 @@ jobs:
       - name: Append New Data to JSON
         run: |
           echo '${{ github.event.inputs.submission }}' > form_submission.json
-          jq '. + [input]' data/submissions.json form_submission.json > updated_submissions.json || echo '[input]' form_submission.json > updated_submissions.json
-          mv updated_submissions.json data/submissions.json
+          jq --slurpfile newData form_submission.json '. + $newData' data/submissions.json > updated_submissions.json
 
       - name: Commit and Push Changes
         env:
-          GITHUB_TOKEN: ${{ secrets.SCORECARD }}  # ✅ Uses the correct secret for authentication
+          GITHUB_TOKEN: ${{ secrets.SCORECARD }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # Overwrite the JSON file with updated data
+          mv updated_submissions.json data/submissions.json
           git add data/submissions.json
-          git commit -m "New form submission via GitHub Actions"
+          git commit -m "New form submission via GitHub Actions" || echo "No changes to commit"
           git push https://x-access-token:$GITHUB_TOKEN@github.com/mukucoder87/fpsc2.git HEAD:main
