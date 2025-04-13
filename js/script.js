@@ -3,8 +3,6 @@
  *************************************************************/
 const GITHUB_REPO = "mukucoder87/fpsc2"; // "username/repository"
 const GITHUB_FILE = "data/submissions.json";
-const GITHUB_API_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN"; // e.g. "ghp_xxx..."
-
 
 // Mapping for answer categories
 const categoryLabels = {
@@ -265,25 +263,6 @@ function collectFormData() {
     responses: responses
   };
 }
-
-/*************************************************************
- * 5) Final submission: store data in GitHub (JSON file)
- *************************************************************/
-/*************************************************************
- * CONFIG: Removed direct GitHub API token from client-side.
- *************************************************************/
-// const GITHUB_API_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN"; // REMOVED!
-
-// Mapping for answer categories (unchanged)
-const categoryLabels = {
-  "2": "Completed and Fully Operational",
-  "1.5": "Work in Progress",
-  "1": "Planning and Review Phase",
-  "0.5": "Brainstorming Phase",
-  "0": "No Action Taken"
-};
-
-// ... [The rest of your standards and generateForm remains unchanged] ...
 
 /*************************************************************
  * 5) Final submission: send data to our backend endpoint
