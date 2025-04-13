@@ -1,17 +1,19 @@
 const express = require("express");
-const fetch = require("node-fetch"); // Make sure this is installed
+const fetch = require("node-fetch"); // Ensure node-fetch is installed: npm install node-fetch
 require("dotenv").config();
 const cors = require("cors");
 
 const app = express();
-app.use(cors());
+app.use(cors()); // Allows all origins; adjust as needed for production
 app.use(express.json());
 
 app.post("/submit", async (req, res) => {
   const formData = req.body;
+  console.log("Received submission:", formData); // Debug: Log incoming submission
 
   try {
-    const response = await fetch("https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/main.yml/dispatches", {
+    // Dispatch workflow with GitHub Actions
+    const githubResponse = await fetch("https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/main.yml/dispatches", {
       method: "POST",
       headers: {
         "Authorization": `token ${process.env.SCORECARD}`,
@@ -25,9 +27,10 @@ app.post("/submit", async (req, res) => {
         }
       })
     });
-    
-    const resultText = await response.text();
-    res.status(response.status).send(resultText);
+
+    const resultText = await githubResponse.text();
+    console.log("GitHub response:", resultText);
+    res.status(githubResponse.status).send(resultText);
   } catch (error) {
     console.error("Error while dispatching workflow:", error);
     res.status(500).send({ error: "Internal server error" });
