@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Flood Preparedness Dashboard</title>
+  <!-- Include SheetJS for Excel parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Optionally, include Chart.js if you want to build charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #dashboard { margin-top: 20px; }
+    #filterDiv { margin-bottom: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Flood Preparedness Dashboard</h1>
+  
+  <div id="filterDiv">
+    <label for="districtSelect">Select District:</label>
+    <select id="districtSelect">
+      <option value="all">All Districts</option>
+    </select>
+  </div>
+  
+  <div id="dashboard">
+    <h2>Submission Results</h2>
+    <div id="tableContainer"></div>
+    <!-- Optional: container for charts -->
+    <canvas id="myChart" width="400" height="200" style="display:none;"></canvas>
+  </div>
+  
+  <script>
+    // URL of your Excel file in the GitHub repository (raw file URL)
+    const EXCEL_URL = "https://raw.githubusercontent.com/mukucoder87/fpsc2/main/data/submissions.xlsx";
+    
+    // Global variable to hold parsed data
+    let submissions = [];
+
+    // Function to fetch and parse the Excel file using SheetJS
+    async function loadExcelData() {
+      try {
+        // Fetch the file as an ArrayBuffer
+        const response = await fetch(EXCEL_URL);
+        const data = await response.arrayBuffer();
+        
+        // Read the Excel file
+        const workbook = XLSX.read(data, { type: "array" });
+        // Assuming the data is in the first sheet
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        // Convert the sheet to JSON
+        submissions = XLSX.utils.sheet_to_json(firstSheet);
+        console.log("Parsed submissions:", submissions);
+        
+        // Populate the district dropdown
+        populateDistrictDropdown();
+        
+        // Initially show all data
+        displayData("all");
+      } catch (error) {
+        console.error("Error loading Excel data:", error);
+      }
+    }
+    
+    // Populate the district dropdown, assuming "districtName" is one column
+    function populateDistrictDropdown() {
+      const districtSelect = document.getElementById("districtSelect");
+      const districts = new Set();
+      submissions.forEach(item => {
+        if (item.districtName) {
+          districts.add(item.districtName);
+        }
+      });
+      // Append options to the dropdown
+      districts.forEach(district => {
+        const option = document.createElement("option");
+        option.value = district;
+        option.textContent = district;
+        districtSelect.appendChild(option);
+      });
+      
+      // Listen for changes
+      districtSelect.addEventListener("change", (e) => {
+        displayData(e.target.value);
+      });
+    }
+    
+    // Display filtered data in a table (you can extend this to charts, etc.)
+    function displayData(selectedDistrict) {
+      const tableContainer = document.getElementById("tableContainer");
+      // Filter the submissions if needed
+      const filtered = selectedDistrict === "all" ? submissions : submissions.filter(item => item.districtName === selectedDistrict);
+      
+      if (filtered.length === 0) {
+        tableContainer.innerHTML = "<p>No submissions found for the selected district.</p>";
+        return;
+      }
+      
+      // Build an HTML table: dynamically determine columns from keys
+      const columns = Object.keys(filtered[0]);
+      let html = "<table><thead><tr>";
+      columns.forEach(col => {
+        html += `<th>${col}</th>`;
+      });
+      html += "</tr></thead><tbody>";
+      
+      filtered.forEach(row => {
+        html += "<tr>";
+        columns.forEach(col => {
+          html += `<td>${row[col] != null ? row[col] : ''}</td>`;
+        });
+        html += "</tr>";
+      });
+      html += "</tbody></table>";
+      
+      tableContainer.innerHTML = html;
+      
+      // Optionally update a chart here with Chart.js if desired:
+      // updateChart(filtered);
+    }
+    
+    // Example function to update a chart (optional)
+    function updateChart(data) {
+      const ctx = document.getElementById('myChart').getContext('2d');
+      // Assuming you want to display count of submissions per district, for example
+      const counts = {};
+      data.forEach(item => {
+        const district = item.districtName || 'Unknown';
+        counts[district] = (counts[district] || 0) + 1;
+      });
+      const labels = Object.keys(counts);
+      const values = Object.values(counts);
+      
+      // Make sure canvas is visible
+      document.getElementById('myChart').style.display = 'block';
+
+      // Destroy any previous chart instance if needed...
+      new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Submission Counts',
+            data: values,
+            backgroundColor: 'rgba(0, 122, 204, 0.7)'
+          }]
+        },
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+    
+    // Kick off the data load when the page loads
+    window.onload = loadExcelData;
+  </script>
+</body>
+</html>
