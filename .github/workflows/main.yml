@@ -10,7 +10,6 @@ on:
 jobs:
   update_json:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -28,6 +27,7 @@ jobs:
         run: |
           echo '${{ github.event.inputs.submission }}' > form_submission.json
           jq --slurpfile newData form_submission.json '. + $newData' data/submissions.json > updated_submissions.json
+          cat updated_submissions.json  # Debug: print updated JSON
 
       - name: Commit and Push Changes
         env:
@@ -35,7 +35,6 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          # Overwrite the JSON file with updated data
           mv updated_submissions.json data/submissions.json
           git add data/submissions.json
           git commit -m "New form submission via GitHub Actions" || echo "No changes to commit"
