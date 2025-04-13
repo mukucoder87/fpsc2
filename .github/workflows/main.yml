@@ -7,6 +7,10 @@ on:
         description: "Form Submission Data"
         required: true
 
+#This will grant permission to write to the Action
+permissions:
+  contents: write
+
 jobs:
   update_json:
     runs-on: ubuntu-latest
