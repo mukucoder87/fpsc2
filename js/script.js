@@ -269,7 +269,27 @@ function collectFormData() {
 /*************************************************************
  * 5) Final submission: store data in GitHub (JSON file)
  *************************************************************/
+/*************************************************************
+ * CONFIG: Removed direct GitHub API token from client-side.
+ *************************************************************/
+// const GITHUB_API_TOKEN = "YOUR_PERSONAL_ACCESS_TOKEN"; // REMOVED!
+
+// Mapping for answer categories (unchanged)
+const categoryLabels = {
+  "2": "Completed and Fully Operational",
+  "1.5": "Work in Progress",
+  "1": "Planning and Review Phase",
+  "0.5": "Brainstorming Phase",
+  "0": "No Action Taken"
+};
+
+// ... [The rest of your standards and generateForm remains unchanged] ...
+
+/*************************************************************
+ * 5) Final submission: send data to our backend endpoint
+ *************************************************************/
 async function finalSubmit() {
+    // Collect the form data
     const formData = {
         districtName: document.getElementById("districtName").value,
         ceoDDMA: document.getElementById("ceoDDMA").value,
@@ -278,32 +298,27 @@ async function finalSubmit() {
         responses: {}
     };
 
+    // Gather responses from all dropdowns
     document.querySelectorAll("select").forEach(select => {
         formData.responses[select.name] = select.value;
     });
 
     try {
-        const response = await fetch(`https://api.github.com/repos/mukucoder87/fpsc2/actions/workflows/main.yml/dispatches`, {  
+        // Call your own backend endpoint instead of GitHub API directly
+        const response = await fetch("http://localhost:3000/submit", {  
             method: "POST",
             headers: {
-                "Authorization": `token YOUR_PERSONAL_ACCESS_TOKEN`,  // Use GitHub Secret if possible
-                "Accept": "application/vnd.github.v3+json",
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({
-                ref: "main",
-                inputs: {
-                    submission: JSON.stringify(formData)
-                }
-            })
+            body: JSON.stringify(formData)
         });
 
         if (response.ok) {
             alert("Form submitted successfully! GitHub Actions will process the update.");
         } else {
             const errorData = await response.json();
-            console.error("GitHub API Error:", errorData);
-            alert("Error triggering GitHub Actions.");
+            console.error("Server API Error:", errorData);
+            alert("Error triggering server dispatch.");
         }
     } catch (error) {
         console.error("Error:", error);
