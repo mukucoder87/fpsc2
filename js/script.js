@@ -1,10 +1,12 @@
 /*************************************************************
- * CONFIG: Replace with your GitHub repo info
+ * CONFIG: (Unused constants removed to avoid confusion)
  *************************************************************/
-const GITHUB_REPO = "mukucoder87/fpsc2"; // "username/repository"
-const GITHUB_FILE = "data/submissions.json";
+// const GITHUB_REPO = "mukucoder87/fpsc2"; // Not used on client-side now
+// const GITHUB_FILE = "data/submissions.json";
 
-// Mapping for answer categories
+/*************************************************************
+ * Mapping for answer categories
+ *************************************************************/
 const categoryLabels = {
   "2": "Completed and Fully Operational",
   "1.5": "Work in Progress",
@@ -213,21 +215,27 @@ function generateForm() {
   form.appendChild(submitBtn);
 }
 
-// 2) Clear form + localStorage
+/*************************************************************
+ * 2) Clear form + localStorage
+ *************************************************************/
 function clearForm() {
   document.getElementById("assessmentForm").reset();
   localStorage.removeItem("assessmentData");
   alert("Form cleared and local storage removed.");
 }
 
-// 3) Save form to localStorage (optional)
+/*************************************************************
+ * 3) Save form to localStorage (optional)
+ *************************************************************/
 function saveForm() {
   const formData = collectFormData();
   localStorage.setItem("assessmentData", JSON.stringify(formData));
   alert("Form data saved to local storage.");
 }
 
-// 4) Load form from localStorage (optional)
+/*************************************************************
+ * 4) Load form from localStorage (optional)
+ *************************************************************/
 function loadForm() {
   const data = JSON.parse(localStorage.getItem("assessmentData") || "{}");
   if (!data.responses) {
@@ -248,7 +256,9 @@ function loadForm() {
   alert("Form data loaded from local storage.");
 }
 
-// Helper to gather all form data into an object
+/*************************************************************
+ * Helper to gather all form data into an object
+ *************************************************************/
 function collectFormData() {
   let responses = {};
   document.querySelectorAll("#assessmentForm select").forEach(select => {
@@ -268,41 +278,41 @@ function collectFormData() {
  * 5) Final submission: send data to our backend endpoint
  *************************************************************/
 async function finalSubmit() {
-    // Collect the form data
-    const formData = {
-        districtName: document.getElementById("districtName").value,
-        ceoDDMA: document.getElementById("ceoDDMA").value,
-        departmentName: document.getElementById("departmentName").value,
-        officerName: document.getElementById("officerName").value,
-        responses: {}
-    };
+  // Collect the form data
+  const formData = {
+    districtName: document.getElementById("districtName").value,
+    ceoDDMA: document.getElementById("ceoDDMA").value,
+    departmentName: document.getElementById("departmentName").value,
+    officerName: document.getElementById("officerName").value,
+    responses: {}
+  };
 
-    // Gather responses from all dropdowns
-    document.querySelectorAll("select").forEach(select => {
-        formData.responses[select.name] = select.value;
+  // Gather responses from all dropdowns within #assessmentForm
+  document.querySelectorAll("#assessmentForm select").forEach(select => {
+    formData.responses[select.name] = select.value;
+  });
+
+  try {
+    // Call your own backend endpoint instead of directly reaching GitHub
+    const response = await fetch("http://localhost:3000/submit", {  
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(formData)
     });
 
-    try {
-        // Call your own backend endpoint instead of GitHub API directly
-        const response = await fetch("http://localhost:3000/submit", {  
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(formData)
-        });
-
-        if (response.ok) {
-            alert("Form submitted successfully! GitHub Actions will process the update.");
-        } else {
-            const errorData = await response.json();
-            console.error("Server API Error:", errorData);
-            alert("Error triggering server dispatch.");
-        }
-    } catch (error) {
-        console.error("Error:", error);
-        alert("Something went wrong while submitting the form!");
+    if (response.ok) {
+      alert("Form submitted successfully! GitHub Actions will process the update.");
+    } else {
+      const errorData = await response.json();
+      console.error("Server API Error:", errorData);
+      alert("Error triggering server dispatch.");
     }
+  } catch (error) {
+    console.error("Error in finalSubmit:", error);
+    alert("Something went wrong while submitting the form!");
+  }
 }
 
 /*************************************************************
@@ -356,15 +366,14 @@ function generateReport(latestSubmission, allSubmissions) {
         y: {
           beginAtZero: true,
           title: { display: true, text: "Score" },
-          // Max possible per standard is 7 questions × 2 = 14
-          max: 14
+          max: 14  // Max possible per standard is 7 questions × 2 = 14
         }
       }
     }
   });
 
   // Overall distribution (pie chart)
-  let distributionCounts = { "2":0, "1.5":0, "1":0, "0.5":0, "0":0 };
+  let distributionCounts = { "2": 0, "1.5": 0, "1": 0, "0.5": 0, "0": 0 };
   Object.values(latestSubmission.responses).forEach(val => {
     distributionCounts[val] = (distributionCounts[val] || 0) + 1;
   });
@@ -392,7 +401,7 @@ function generateReport(latestSubmission, allSubmissions) {
  * 7) PDF Download
  *************************************************************/
 function downloadPDF() {
-  html2canvas(document.getElementById("reportSection"), {scale: 2}).then(canvas => {
+  html2canvas(document.getElementById("reportSection"), { scale: 2 }).then(canvas => {
     const imgData = canvas.toDataURL("image/png");
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF("p", "pt", "a4");
