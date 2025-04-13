@@ -3,160 +3,265 @@
 <head>
   <meta charset="UTF-8">
   <title>Flood Preparedness Dashboard</title>
-  <!-- Include SheetJS for Excel parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- Optionally, include Chart.js if you want to build charts -->
+  <!-- Bootstrap CSS for creative layout -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <!-- Chart.js for graphs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS for Excel parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    #dashboard { margin-top: 20px; }
-    #filterDiv { margin-bottom: 20px; }
-    table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    body {
+      margin: 20px;
+      background: #f9f9f9;
+    }
+    .dashboard-header {
+      margin-bottom: 20px;
+    }
+    .card {
+      margin-bottom: 20px;
+    }
+    .table-container {
+      overflow-x: auto;
+    }
   </style>
 </head>
 <body>
-  <h1>Flood Preparedness Dashboard</h1>
-  
-  <div id="filterDiv">
-    <label for="districtSelect">Select District:</label>
-    <select id="districtSelect">
-      <option value="all">All Districts</option>
-    </select>
-  </div>
-  
-  <div id="dashboard">
-    <h2>Submission Results</h2>
-    <div id="tableContainer"></div>
-    <!-- Optional: container for charts -->
-    <canvas id="myChart" width="400" height="200" style="display:none;"></canvas>
-  </div>
+  <div class="container">
+    <div class="dashboard-header text-center">
+      <h1>Flood Preparedness Dashboard</h1>
+      <p>Analyze district performance and MPS metrics in real time</p>
+    </div>
+    
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" id="district-tab" data-toggle="tab" href="#district" role="tab" aria-controls="district" aria-selected="true">District Details</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="mps-tab" data-toggle="tab" href="#mps" role="tab" aria-controls="mps" aria-selected="false">MPS Comparison</a>
+      </li>
+    </ul>
+
+    <div class="tab-content" id="dashboardTabsContent">
+      <!-- District Details Tab -->
+      <div class="tab-pane fade show active" id="district" role="tabpanel" aria-labelledby="district-tab">
+        <div class="card">
+          <div class="card-body">
+            <h4>Select District</h4>
+            <select id="districtSelect" class="form-control w-50 mb-3">
+              <option value="all">All Districts</option>
+            </select>
+            <div id="districtDetails" class="table-container"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- MPS Comparison Tab -->
+      <div class="tab-pane fade" id="mps" role="tabpanel" aria-labelledby="mps-tab">
+        <div class="card">
+          <div class="card-body">
+            <h4>Select MPS</h4>
+            <select id="mpsSelect" class="form-control w-50 mb-3">
+              <option value="none">Select an MPS</option>
+            </select>
+            <div id="mpsChartContainer">
+              <canvas id="mpsChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div> <!-- End tab content -->
+  </div> <!-- End container -->
+
+  <!-- Bootstrap and jQuery JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
   
   <script>
-    // URL of your Excel file in the GitHub repository (raw file URL)
+    // URL of the Excel file (update if needed)
     const EXCEL_URL = "https://raw.githubusercontent.com/mukucoder87/fpsc2/main/data/submissions.xlsx";
+    let submissions = []; // Global array for parsed Excel data
     
-    // Global variable to hold parsed data
-    let submissions = [];
+    // Define labels for each MPS (11 total); adjust as needed.
+    const mpsNames = {
+      "MPS1": "Risk Analysis and Monitoring",
+      "MPS2": "Early Warning",
+      "MPS3": "Evacuation Procedures",
+      "MPS4": "Flood Rescue Operations",
+      "MPS5": "Emergency Communication",
+      "MPS6": "Relief Camp Management",
+      "MPS7": "Immediate Medical Response",
+      "MPS8": "Water Supply & Sanitation",
+      "MPS9": "Flood Risk Mapping",
+      "MPS10": "Resource Prepositioning",
+      "MPS11": "Post-Event Reporting"
+    };
+    
+    // On window load, fetch the Excel data and populate dropdowns.
+    window.onload = function() {
+      loadExcelData();
+      populateMpsDropdown();
+    };
 
-    // Function to fetch and parse the Excel file using SheetJS
     async function loadExcelData() {
       try {
-        // Fetch the file as an ArrayBuffer
         const response = await fetch(EXCEL_URL);
         const data = await response.arrayBuffer();
-        
-        // Read the Excel file
-        const workbook = XLSX.read(data, { type: "array" });
-        // Assuming the data is in the first sheet
+        const workbook = XLSX.read(data, {type: "array"});
+        // Assume data is in the first sheet
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-        // Convert the sheet to JSON
         submissions = XLSX.utils.sheet_to_json(firstSheet);
-        console.log("Parsed submissions:", submissions);
-        
-        // Populate the district dropdown
+        console.log("Submissions loaded:", submissions);
         populateDistrictDropdown();
-        
-        // Initially show all data
-        displayData("all");
+        displayDistrictDetails("all");
       } catch (error) {
         console.error("Error loading Excel data:", error);
       }
     }
     
-    // Populate the district dropdown, assuming "districtName" is one column
+    // Populate the District dropdown (for District Details view)
     function populateDistrictDropdown() {
       const districtSelect = document.getElementById("districtSelect");
       const districts = new Set();
-      submissions.forEach(item => {
-        if (item.districtName) {
-          districts.add(item.districtName);
+      submissions.forEach(row => {
+        if (row.districtName) {
+          districts.add(row.districtName);
         }
       });
-      // Append options to the dropdown
       districts.forEach(district => {
         const option = document.createElement("option");
         option.value = district;
         option.textContent = district;
         districtSelect.appendChild(option);
       });
-      
-      // Listen for changes
-      districtSelect.addEventListener("change", (e) => {
-        displayData(e.target.value);
+      districtSelect.addEventListener("change", function() {
+        displayDistrictDetails(this.value);
       });
     }
     
-    // Display filtered data in a table (you can extend this to charts, etc.)
-    function displayData(selectedDistrict) {
-      const tableContainer = document.getElementById("tableContainer");
-      // Filter the submissions if needed
-      const filtered = selectedDistrict === "all" ? submissions : submissions.filter(item => item.districtName === selectedDistrict);
-      
-      if (filtered.length === 0) {
-        tableContainer.innerHTML = "<p>No submissions found for the selected district.</p>";
-        return;
+    // Display details for the selected district.
+    function displayDistrictDetails(selectedDistrict) {
+      let filtered = submissions;
+      if(selectedDistrict !== "all") {
+        filtered = submissions.filter(row => row.districtName === selectedDistrict);
       }
       
-      // Build an HTML table: dynamically determine columns from keys
-      const columns = Object.keys(filtered[0]);
-      let html = "<table><thead><tr>";
-      columns.forEach(col => {
-        html += `<th>${col}</th>`;
-      });
-      html += "</tr></thead><tbody>";
-      
-      filtered.forEach(row => {
-        html += "<tr>";
-        columns.forEach(col => {
-          html += `<td>${row[col] != null ? row[col] : ''}</td>`;
+      let html = "";
+      if(filtered.length === 0) {
+        html = "<p>No submissions found for this district.</p>";
+      } else {
+        // Build table header
+        html += "<table class='table table-bordered'><thead><tr>";
+        html += "<th>#</th><th>District</th>";
+        // For each MPS, compute average from its 5 questions.
+        for(let i = 1; i <= 11; i++) {
+          html += `<th>${mpsNames["MPS"+i]} Avg</th>`;
+        }
+        html += "</tr></thead><tbody>";
+        
+        filtered.forEach((row, index) => {
+          html += `<tr><td>${index+1}</td><td>${row.districtName}</td>`;
+          for(let i = 1; i <= 11; i++) {
+            let sum = 0, cnt = 0;
+            for(let q = 1; q <= 5; q++) {
+              let col = "MPS" + i + "_Q" + q;
+              if(row[col] !== undefined && row[col] !== null && row[col] !== "") {
+                sum += parseFloat(row[col]);
+                cnt++;
+              }
+            }
+            let avg = cnt ? (sum/cnt).toFixed(2) : "N/A";
+            html += `<td>${avg}</td>`;
+          }
+          html += "</tr>";
         });
-        html += "</tr>";
-      });
-      html += "</tbody></table>";
-      
-      tableContainer.innerHTML = html;
-      
-      // Optionally update a chart here with Chart.js if desired:
-      // updateChart(filtered);
+        html += "</tbody></table>";
+      }
+      document.getElementById("districtDetails").innerHTML = html;
     }
     
-    // Example function to update a chart (optional)
-    function updateChart(data) {
-      const ctx = document.getElementById('myChart').getContext('2d');
-      // Assuming you want to display count of submissions per district, for example
-      const counts = {};
-      data.forEach(item => {
-        const district = item.districtName || 'Unknown';
-        counts[district] = (counts[district] || 0) + 1;
-      });
-      const labels = Object.keys(counts);
-      const values = Object.values(counts);
-      
-      // Make sure canvas is visible
-      document.getElementById('myChart').style.display = 'block';
-
-      // Destroy any previous chart instance if needed...
-      new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Submission Counts',
-            data: values,
-            backgroundColor: 'rgba(0, 122, 204, 0.7)'
-          }]
-        },
-        options: {
-          scales: {
-            y: { beginAtZero: true }
-          }
+    // Populate the MPS dropdown for the Comparison view.
+    function populateMpsDropdown() {
+      const mpsSelect = document.getElementById("mpsSelect");
+      for(let i = 1; i <= 11; i++) {
+        const option = document.createElement("option");
+        option.value = "MPS" + i;
+        option.textContent = mpsNames["MPS"+i];
+        mpsSelect.appendChild(option);
+      }
+      mpsSelect.addEventListener("change", function() {
+        if(this.value !== "none") {
+          displayMpsComparison(this.value);
         }
       });
     }
     
-    // Kick off the data load when the page loads
-    window.onload = loadExcelData;
+    // For a selected MPS, compute the average score per district and render a bar chart.
+    function displayMpsComparison(selectedMps) {
+      const districtScores = {};
+      // Iterate over each submission
+      submissions.forEach(row => {
+        if(!row.districtName) return;
+        const district = row.districtName;
+        let sum = 0, cnt = 0;
+        for(let q = 1; q <= 5; q++) {
+          const col = selectedMps + "_Q" + q;
+          if(row[col] !== undefined && row[col] !== null && row[col] !== "") {
+            sum += parseFloat(row[col]);
+            cnt++;
+          }
+        }
+        const avg = cnt ? (sum / cnt) : 0;
+        if(districtScores[district]) {
+          districtScores[district].total += avg;
+          districtScores[district].count++;
+        } else {
+          districtScores[district] = { total: avg, count: 1 };
+        }
+      });
+      
+      const labels = [];
+      const dataValues = [];
+      for (const [district, stats] of Object.entries(districtScores)) {
+        labels.push(district);
+        dataValues.push((stats.total / stats.count).toFixed(2));
+      }
+      
+      // Render the chart using Chart.js
+      const ctx = document.getElementById("mpsChart").getContext("2d");
+      // Destroy any existing chart
+      if(window.mpsBarChart) {
+        window.mpsBarChart.destroy();
+      }
+      window.mpsBarChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `Average Score for ${mpsNames[selectedMps]}`,
+            data: dataValues,
+            backgroundColor: 'rgba(75, 192, 192, 0.7)'
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Average Score'
+              }
+            }
+          },
+          plugins: {
+            title: {
+              display: true,
+              text: `District Performance on ${mpsNames[selectedMps]}`
+            }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
